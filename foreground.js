@@ -118,14 +118,21 @@ function searchCurrency(rootNode) {
     avoidedChars +
     ')'; // Currency (amount can be at left or right)
   const regExpDollarLong = '((^|(?<=\\s))((U\\.?S\\.?\\s*)?Dollar[s]?)\\b)'; // Currency (amount can be at left)
-  const regExpPriceWithNotation = /[\$]\d+?.\d+[?=k|m|b]/gm;
-  const regExpPriceWithoutNotation = /(?!\$)\d+?.\d+(?=k|m|b)/gm;
-
+  const regExpPriceWithNotation = /[\$]\d+?.\d+[?=k|m|b|K|M|B]/gm;
+  const regExpPriceWithoutNotation = /(?!\$)\d+?.\d+(?=k|m|b|K|M|B)/gm;
+  // console.log('baseRegExpShortDollar:', baseRegExpShortDollar);
+  // console.log('avoidedChars:', avoidedChars);
+  // console.log('regExpPriceJoined:', regExpPriceJoined);
+  // console.log('regExpDollarShort:', regExpDollarShort);
+  // console.log('regExpDollarLong:', regExpDollarLong);
+  // console.log('regExpPriceWithNotation:', regExpPriceWithNotation);
+  // console.log('regExpPriceWithoutNotation:', regExpPriceWithoutNotation);
   const treeWalker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT);
 
   while (treeWalker.nextNode()) {
     const node = treeWalker.currentNode;
     if (!avoidedTags.includes(node.parentNode.tagName.toLowerCase())) {
+      // console.log('node.nodeValue:', node.nodeValue);
       if (new RegExp(regExpPriceJoined, 'gi').test(node.nodeValue)) {
         if (regExpPriceWithNotation.test(node.nodeValue)) {
           // Amount and currency with notations (e.g. $2.94k - $2.94m - $2.94b)
@@ -451,15 +458,17 @@ function convertPriceWithNotation(node, regExpPrice, regExpAmount) {
   const nodes = node.nodeValue.match(regExpPrice);
   if (nodes instanceof Array && nodes.length > 0) {
     nodes.forEach((rawPrice) => {
+      console.log('rawPrice:', rawPrice);
       const priceStr = rawPrice.match(regExpAmount)[0];
       if (priceStr) {
         let price = Number(priceStr);
+        console.log('price:', price);
         if (price) {
-          if (rawPrice.indexOf('k') >= 0) {
+          if (rawPrice.indexOf('k') >= 0 || rawPrice.indexOf('K') >= 0) {
             price *= 1000;
-          } else if (rawPrice.indexOf('m') >= 0) {
+          } else if (rawPrice.indexOf('m') >= 0 || rawPrice.indexOf('M') >= 0) {
             price *= 1000000;
-          } else if (rawPrice.indexOf('b') >= 0) {
+          } else if (rawPrice.indexOf('b') >= 0 || rawPrice.indexOf('B') >= 0) {
             price *= 1000000000;
           }
           const raiAmount = fiatToRai(price + '');
@@ -482,7 +491,9 @@ function fiatToRai(amountString) {
     const prev = raiNumber < 0 ? '>-' : '<';
     return prev + minToShow;
   }
-  return raiNumber.toLocaleString('en-US', {
+  const shortenRaiNumber = shortenLargeNumber(raiNumber, storedDataFg.decimals);
+  console.log('amountString:', amountString, 'raiNumber:', raiNumber, 'shortenRaiNumber:', shortenRaiNumber);
+  return shortenRaiNumber.toLocaleString('en-US', {
     maximumFractionDigits: storedDataFg.decimals,
     minimumFractionDigits: storedDataFg.decimals,
   });
@@ -552,4 +563,44 @@ function refreshUI(oldData) {
       }
     }
   }
+}
+
+/**
+ * Shorten number to thousands, millions, billions, etc.
+ * http://en.wikipedia.org/wiki/Metric_prefix
+ *
+ * @param {number} num Number to shorten.
+ * @param {number} [digits=0] The number of digits to appear after the decimal point.
+ * @returns {string|number}
+ *
+ * @example
+ * // returns '12.5k'
+ * shortenLargeNumber(12543, 1)
+ *
+ * @example
+ * // returns '-13k'
+ * shortenLargeNumber(-12567)
+ *
+ * @example
+ * // returns '51m'
+ * shortenLargeNumber(51000000)
+ *
+ * @example
+ * // returns 651
+ * shortenLargeNumber(651)
+ *
+ * @example
+ * // returns 0.12345
+ * shortenLargeNumber(0.12345)
+ */
+function shortenLargeNumber(num, digits) {
+  let units = ['k', 'm', 'b'],
+      decimal;
+  for(let i=units.length-1; i>=0; i--) {
+      decimal = Math.pow(1000, i+1);
+      if(num <= -decimal || num >= decimal) {
+          return +(num / decimal).toFixed(digits) + units[i];
+      }
+  }
+  return num;
 }
