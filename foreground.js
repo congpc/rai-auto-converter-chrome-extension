@@ -458,11 +458,9 @@ function convertPriceWithNotation(node, regExpPrice, regExpAmount) {
   const nodes = node.nodeValue.match(regExpPrice);
   if (nodes instanceof Array && nodes.length > 0) {
     nodes.forEach((rawPrice) => {
-      console.log('rawPrice:', rawPrice);
       const priceStr = rawPrice.match(regExpAmount)[0];
       if (priceStr) {
         let price = Number(priceStr);
-        console.log('price:', price);
         if (price) {
           if (rawPrice.indexOf('k') >= 0 || rawPrice.indexOf('K') >= 0) {
             price *= 1000;
@@ -471,7 +469,7 @@ function convertPriceWithNotation(node, regExpPrice, regExpAmount) {
           } else if (rawPrice.indexOf('b') >= 0 || rawPrice.indexOf('B') >= 0) {
             price *= 1000000000;
           }
-          const raiAmount = fiatToRai(price + '');
+          const raiAmount = fiatToRai(price + '', true);
           node.nodeValue = node.nodeValue.replace(rawPrice, raiAmount + RAI);
         }
       }
@@ -482,20 +480,29 @@ function convertPriceWithNotation(node, regExpPrice, regExpAmount) {
 /**
  * Converts amount to RAI
  */
-function fiatToRai(amountString) {
+function fiatToRai(amountString, isShorten = false) {
+  let decimalsCount = storedDataFg.decimals;
+  const amountDecimals = countDecimals(amountString);
+  if (amountDecimals > decimalsCount) {
+    decimalsCount = amountDecimals;
+  }
+  // console.log('storedDataFg.decimals:', storedDataFg.decimals, ',amountDecimals:', amountDecimals, ',decimalsCount:', decimalsCount);
   // console.log('fiatToRai', storedDataFg);
   const amountNumber = Number(amountString.replace(/,/g, ''));
-  const minToShow = 1 / Math.pow(10, storedDataFg.decimals);
+  const minToShow = 1 / Math.pow(10, decimalsCount);
   const raiNumber = Number(amountNumber / Number(storedDataFg.conversion));
   if (Math.abs(raiNumber) > 0 && Math.abs(raiNumber) < minToShow) {
     const prev = raiNumber < 0 ? '>-' : '<';
     return prev + minToShow;
   }
-  const shortenRaiNumber = shortenLargeNumber(raiNumber, storedDataFg.decimals);
-  console.log('amountString:', amountString, 'raiNumber:', raiNumber, 'shortenRaiNumber:', shortenRaiNumber);
-  return shortenRaiNumber.toLocaleString('en-US', {
-    maximumFractionDigits: storedDataFg.decimals,
-    minimumFractionDigits: storedDataFg.decimals,
+  let value = raiNumber;
+  if (isShorten) {
+    value = shortenLargeNumber(raiNumber, decimalsCount);
+  }
+  // console.log('amountString:', amountString, 'raiNumber:', raiNumber, 'value:', value);
+  return value.toLocaleString('en-US', {
+    maximumFractionDigits: decimalsCount,
+    minimumFractionDigits: decimalsCount,
   });
 }
 
@@ -603,4 +610,11 @@ function shortenLargeNumber(num, digits) {
       }
   }
   return num;
+}
+
+// get number right of the dot length
+function countDecimals(value) {
+  if(Math.floor(value) === value) return 0;
+  const arr = value.toString().split(".");
+  return (arr.length > 1) ? arr[1].length : 0; 
 }

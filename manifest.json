@@ -1,6 +1,6 @@
 {
-  "name": "RAI Auto-Converter",
-  "description": "RAI Automatic Converter",
+  "name": "RAI-Currency-Converter",
+  "description": "RAI Currency Converter",
   "version": "1.0.0",
   "manifest_version": 3,
   "background": {
