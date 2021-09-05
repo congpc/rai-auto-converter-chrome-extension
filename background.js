@@ -4,7 +4,9 @@ const defaultPreferences = {
   enabled: false,
   refreshConversionTime: 300,
   marketPrice: '1',
-  supportedCurrencies: ['usd', 'eur', 'gbp', 'jpy', 'krw', 'cny', 'inr']
+  supportedCurrencies: ['usd', 'eur', 'gbp', 'jpy', 'krw', 'cny', 'inr'],
+  supportedCoins: ['rai', 'dai', 'usdc', 'susd', 'usdt', 'pax', 'ust', 'busd', 'lusd', 'float'],
+  supportedCoinIds: ['rai', 'dai', 'usd-coin', 'nusd', 'tether', 'payperex', 'terrausd', 'busd', 'liquity-usd', 'float-protocol-float']
 };
 let storedDataBg;
 let conversionInterval;
@@ -78,34 +80,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * Updates the conversion rate RAI/USD
  */
 async function updateConversion() {
-  const retrievedConversion = await getMarketPrice()
-  // const retrievedConversion = storedDataBg.marketPrice
-  //   ? await getMarketPrice()
-  //   : await getRedemptionPrice();
-  printLog('retrievedConversion:', retrievedConversion);
-  // console.log({
-  //   retrievedConversion,
-  //   storedDataBg,
-  // });
-  if (storedDataBg.supportedCurrencies === undefined) {
-    storedDataBg.supportedCurrencies = defaultPreferences.supportedCurrencies;
-  }
+  const retrievedConversion = await getMarketPrice();
+  storedDataBg.supportedCurrencies = defaultPreferences.supportedCurrencies;
+  storedDataBg.supportedCoins = defaultPreferences.supportedCoins;
   if (retrievedConversion) {
     let newConversion = {};
-    const keys = Object.keys(retrievedConversion);
+    let otherConversions = {};
+    const retrievedConversionRai = retrievedConversion.rai;
+    const keys = Object.keys(retrievedConversionRai);
     keys.forEach(key => {
-      const value = retrievedConversion[key];
+      const value = retrievedConversionRai[key];
       newConversion[key] = Number(value).toFixed(
         storedDataBg.decimals
       );
-    })
-    console.log('newConversion:', newConversion);
-    // const newConversion = Number(retrievedConversion).toFixed(
-    //   storedDataBg.decimals
-    // );
-    
+    });
+    const supportedCoinIds = defaultPreferences.supportedCoinIds;
+    supportedCoinIds.forEach((value, index) => {
+      if (value !== 'rai') {
+        const coinName = defaultPreferences.supportedCoins[index];
+        otherConversions[coinName] = retrievedConversion[value];
+      }
+    });
     storedDataBg.conversion = newConversion.usd;
     storedDataBg.conversions = newConversion;
+    storedDataBg.otherConversions = otherConversions;
+    printLog('storedDataBg:', storedDataBg);
 
     // Store current conversion
     chrome.storage.sync.set({ data: storedDataBg });
@@ -129,8 +128,10 @@ async function updateConversion() {
 async function getMarketPrice() {
   try {
     const supportedCurrencies = defaultPreferences.supportedCurrencies;
+    const supportedCoinIds = defaultPreferences.supportedCoinIds;
     const currencies = supportedCurrencies.join();
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=rai&vs_currencies=${currencies}`;
+    const coins = supportedCoinIds.join();
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coins}&vs_currencies=${currencies}`;
     printLog('url', url);
     const response = await fetch(url).catch((err) => {
       console.log(err);
@@ -139,50 +140,7 @@ async function getMarketPrice() {
     if (response && response.ok) {
       const json = await response.json();
       printLog('json', json);
-      return json.rai;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error(error);
-    return null;
-  }
-}
-
-/**
- * Gets last redemption price form RAI subgraph API
- * https://docs.reflexer.finance/api/api-endpoints
- */
-async function getRedemptionPrice() {
-  try {
-    const data = JSON.stringify({
-      query: `{
-                systemState(id: "current") {
-                  currentRedemptionPrice {
-                    value
-                  }
-                }
-              }`,
-    });
-
-    const response = await fetch(
-      'https://api.thegraph.com/subgraphs/name/reflexer-labs/rai-mainnet',
-      {
-        method: 'post',
-        body: data,
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': data.length,
-        },
-      }
-    ).catch((err) => {
-      console.log(err);
-      return null;
-    });
-
-    if (response && response.ok) {
-      const json = await response.json();
-      return json.data.systemState.currentRedemptionPrice.value;
+      return json;
     } else {
       return null;
     }
