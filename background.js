@@ -4,8 +4,8 @@ const defaultPreferences = {
   enabled: false,
   refreshConversionTime: 300,
   marketPrice: '1',
+  supportedCurrencies: ['usd', 'eur', 'gbp', 'jpy', 'krw', 'cny', 'inr']
 };
-
 let storedDataBg;
 let conversionInterval;
 
@@ -78,20 +78,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * Updates the conversion rate RAI/USD
  */
 async function updateConversion() {
-  const retrievedConversion = storedDataBg.marketPrice
-    ? await getMarketPrice()
-    : await getRedemptionPrice();
-
+  const retrievedConversion = await getMarketPrice()
+  // const retrievedConversion = storedDataBg.marketPrice
+  //   ? await getMarketPrice()
+  //   : await getRedemptionPrice();
+  printLog('retrievedConversion:', retrievedConversion);
   // console.log({
   //   retrievedConversion,
   //   storedDataBg,
   // });
-
+  if (storedDataBg.supportedCurrencies === undefined) {
+    storedDataBg.supportedCurrencies = defaultPreferences.supportedCurrencies;
+  }
   if (retrievedConversion) {
-    const newConversion = Number(retrievedConversion).toFixed(
-      storedDataBg.decimals
-    );
-    storedDataBg.conversion = newConversion;
+    let newConversion = {};
+    const keys = Object.keys(retrievedConversion);
+    keys.forEach(key => {
+      const value = retrievedConversion[key];
+      newConversion[key] = Number(value).toFixed(
+        storedDataBg.decimals
+      );
+    })
+    console.log('newConversion:', newConversion);
+    // const newConversion = Number(retrievedConversion).toFixed(
+    //   storedDataBg.decimals
+    // );
+    
+    storedDataBg.conversion = newConversion.usd;
+    storedDataBg.conversions = newConversion;
 
     // Store current conversion
     chrome.storage.sync.set({ data: storedDataBg });
@@ -114,16 +128,18 @@ async function updateConversion() {
  */
 async function getMarketPrice() {
   try {
-    const response = await fetch(
-      'https://api.coingecko.com/api/v3/simple/price?ids=rai&vs_currencies=usd'
-    ).catch((err) => {
+    const supportedCurrencies = defaultPreferences.supportedCurrencies;
+    const currencies = supportedCurrencies.join();
+    const url = `https://api.coingecko.com/api/v3/simple/price?ids=rai&vs_currencies=${currencies}`;
+    printLog('url', url);
+    const response = await fetch(url).catch((err) => {
       console.log(err);
       return null;
     });
-
     if (response && response.ok) {
       const json = await response.json();
-      return json.rai.usd;
+      printLog('json', json);
+      return json.rai;
     } else {
       return null;
     }
@@ -214,4 +230,12 @@ function executeForeGround(tabId) {
       files: ['./foreground.js'],
     })
     .catch((err) => console.log(err));
+}
+
+function printLog(title, message) {
+  if (message !== undefined) {
+    console.log(title, message);
+  } else {
+    console.log(title);
+  }
 }
