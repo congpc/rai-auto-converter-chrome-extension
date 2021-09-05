@@ -84,21 +84,23 @@ async function updateConversion() {
   storedDataBg.supportedCurrencies = defaultPreferences.supportedCurrencies;
   storedDataBg.supportedCoins = defaultPreferences.supportedCoins;
   if (retrievedConversion) {
-    let newConversion = {};
+    const newConversion = retrievedConversion.rai || {};
     let otherConversions = {};
-    const retrievedConversionRai = retrievedConversion.rai;
-    const keys = Object.keys(retrievedConversionRai);
-    keys.forEach(key => {
-      const value = retrievedConversionRai[key];
-      newConversion[key] = Number(value).toFixed(
-        storedDataBg.decimals
-      );
-    });
+    // const retrievedConversionRai = retrievedConversion.rai;
+    // const keys = Object.keys(retrievedConversionRai);
+    // keys.forEach(key => {
+    //   const value = retrievedConversionRai[key];
+    //   newConversion[key] = Number(value).toFixed(
+    //     storedDataBg.decimals
+    //   );
+    // });
     const supportedCoinIds = defaultPreferences.supportedCoinIds;
     supportedCoinIds.forEach((value, index) => {
       if (value !== 'rai') {
         const coinName = defaultPreferences.supportedCoins[index];
-        otherConversions[coinName] = retrievedConversion[value];
+        const coinData = retrievedConversion[value];
+        coinData.rai = coinData.usd / newConversion.usd;
+        otherConversions[coinName] = coinData;
       }
     });
     storedDataBg.conversion = newConversion.usd;
