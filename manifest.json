@@ -6,6 +6,12 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["jquery.min.js", "helper.js", "content.js"]
+    }
+  ],
   "permissions": [
     "storage",
     "activeTab",
