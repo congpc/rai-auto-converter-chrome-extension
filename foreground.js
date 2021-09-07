@@ -90,113 +90,19 @@ const regExpAmount = '-?\\d+(?:\\.\\d+)?(?:,\\d+(?:\\.\\d+)?)*';
  */
 function searchCurrency(rootNode) {
   const supportedCurrencies = storedDataFg.supportedCurrencies;
-  printLog('supportedCurrencies:', supportedCurrencies);
-  supportedCurrencies.forEach(currency => {
-    processCurrency(rootNode, currency);
-  })
-
-  // const baseRegExpShortDollar = '(USD|U.S.D.|US\\s?\\$|U.S.\\s?\\$|\\$)';
-  // const avoidedChars = '[a-zA-Z0-9$]';
-  // const regExpPriceJoined =
-  //   '(?<!' +
-  //   avoidedChars +
-  //   ')(' +
-  //   regExpAmount +
-  //   '(' +
-  //   baseRegExpShortDollar +
-  //   '(?!' +
-  //   avoidedChars +
-  //   ')))|(((?<!' +
-  //   avoidedChars +
-  //   ')' +
-  //   baseRegExpShortDollar +
-  //   ')' +
-  //   regExpAmount +
-  //   ')(?!' +
-  //   avoidedChars +
-  //   ')'; // Amount and currency without space
-  // const regExpDollarShort =
-  //   '(?<!' +
-  //   avoidedChars +
-  //   ')' +
-  //   baseRegExpShortDollar +
-  //   '(?!' +
-  //   avoidedChars +
-  //   ')'; // Currency (amount can be at left or right)
-  // const regExpDollarLong = '((^|(?<=\\s))((U\\.?S\\.?\\s*)?Dollar[s]?)\\b)'; // Currency (amount can be at left)
-  // const regExpPriceWithNotation = /[\$]\d+?.\d+[?=k|m|b|K|M|B]/gm;
-  // const regExpPriceWithoutNotation = /(?!\$)\d+?.\d+(?=k|m|b|K|M|B)/gm;
-  // // console.log('baseRegExpShortDollar:', baseRegExpShortDollar);
-  // // console.log('avoidedChars:', avoidedChars);
-  // // console.log('regExpPriceJoined:', regExpPriceJoined);
-  // // console.log('regExpDollarShort:', regExpDollarShort);
-  // // console.log('regExpDollarLong:', regExpDollarLong);
-  // // console.log('regExpPriceWithNotation:', regExpPriceWithNotation);
-  // // console.log('regExpPriceWithoutNotation:', regExpPriceWithoutNotation);
-  // const treeWalker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT);
-
-  // while (treeWalker.nextNode()) {
-  //   const node = treeWalker.currentNode;
-  //   if (!avoidedTags.includes(node.parentNode.tagName.toLowerCase())) {
-  //     // console.log('node.nodeValue:', node.nodeValue);
-  //     if (new RegExp(regExpPriceJoined, 'gi').test(node.nodeValue)) {
-  //       if (regExpPriceWithNotation.test(node.nodeValue)) {
-  //         // Amount and currency with notations (e.g. $2.94k - $2.94m - $2.94b)
-  //         convertPriceWithNotation(
-  //           node,
-  //           regExpPriceWithNotation,
-  //           regExpPriceWithoutNotation
-  //         );
-  //       } else {
-  //         // Amount and currency without space found (e.g. 11.1USD - $22)
-  //         convertPrice(node, new RegExp(regExpPriceJoined, 'gi'), regExpAmount);
-  //       }
-  //     } else if (new RegExp(regExpDollarShort, 'gi').test(node.nodeValue)) {
-  //       // Currency found --> search amount left and right
-  //       const regExpPriceLeft = new RegExp(
-  //         regExpAmount + '\\s*' + regExpDollarShort,
-  //         'gi'
-  //       );
-  //       const regExpPriceRight = new RegExp(
-  //         regExpDollarShort + '\\s*' + regExpAmount,
-  //         'gi'
-  //       );
-  //       if (regExpPriceLeft.test(node.nodeValue)) {
-  //         // Amount found at left (e.g. 5.55 $)
-  //         convertPrice(node, regExpPriceLeft, regExpAmount);
-  //       } else if (regExpPriceRight.test(node.nodeValue)) {
-  //         // Amount found at right (e.g. USD 66)
-  //         convertPrice(node, regExpPriceRight, regExpAmount);
-  //       } else if (
-  //         new RegExp(
-  //           '^(' + regExpDollarShort + '|' + regExpDollarShort + ')$',
-  //           'gi'
-  //         ).test(node.nodeValue.trim())
-  //       ) {
-  //         // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>$</span><span>6.66</span>)
-  //         searchAmount(node, regExpDollarShort, true);
-  //       }
-  //     } else if (new RegExp(regExpDollarLong, 'gi').test(node.nodeValue)) {
-  //       // Currency found --> search amount left
-  //       const regExpPriceLeft = new RegExp(
-  //         regExpAmount + '\\s*' + regExpDollarLong,
-  //         'gi'
-  //       );
-  //       if (regExpPriceLeft.test(node.nodeValue)) {
-  //         // Amount found at left (e.g. 7.77 Dollars)
-  //         convertPrice(node, regExpPriceLeft, regExpAmount);
-  //       } else if (
-  //         new RegExp(
-  //           '^(' + regExpDollarLong + '|' + regExpDollarShort + ')$',
-  //           'gi'
-  //         ).test(node.nodeValue.trim())
-  //       ) {
-  //         // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>8</span><span>US Dollar</span>)
-  //         searchAmount(node, regExpDollarLong, false);
-  //       }
-  //     }
-  //   }
-  // }
+  // printLog('supportedCurrencies:', supportedCurrencies);
+  const treeWalker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT);
+  while (treeWalker.nextNode()) {
+    const node = treeWalker.currentNode;
+    if (!avoidedTags.includes(node.parentNode.tagName.toLowerCase())) {
+      if (node.nodeValue && node.nodeValue.trim().length > 0) {
+        // console.log('node.nodeValue:', node.nodeValue);
+        supportedCurrencies.forEach(currency => {
+          processCurrency(node, currency);
+        })
+      }
+    }
+  }
 }
 function getCurrencySymbol(currency) {
   switch(currency) {
@@ -265,7 +171,7 @@ function getCurrencyRegexLong(currency) {
   // printLog('[getCurrencyRegexLong] currency:' + currency + ', regex:', regex);
   return regex;
 }
-function processCurrency(rootNode, currency) {
+function processCurrency(node, currency) {
   // console.log('currency:', currency);
   const baseRegExpShortDollar = getCurrencyRegexShort(currency);
   const avoidedChars = '[a-zA-Z0-9$]';
@@ -296,77 +202,78 @@ function processCurrency(rootNode, currency) {
     avoidedChars +
     ')'; // Currency (amount can be at left or right)
   const regExpDollarLong = getCurrencyRegexLong(currency); // Currency (amount can be at left)
-  const regExpPriceWithNotation = /[\$]\d+?.\d+[?=k|m|b|K|M|B]/gm;
-  const regExpPriceWithoutNotation = /(?!\$)\d+?.\d+(?=k|m|b|K|M|B)/gm;
-  // console.log('baseRegExpShortDollar:', baseRegExpShortDollar);
-  // console.log('avoidedChars:', avoidedChars);
-  // console.log('regExpPriceJoined:', regExpPriceJoined);
-  // console.log('regExpDollarShort:', regExpDollarShort);
-  // console.log('regExpDollarLong:', regExpDollarLong);
-  // console.log('regExpPriceWithNotation:', regExpPriceWithNotation);
-  // console.log('regExpPriceWithoutNotation:', regExpPriceWithoutNotation);
-  const treeWalker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT);
+  const regExpExtra = '(k|m|b)';
+  const regExpPriceWithNotation = /[\$]\d+?.\d+[?=k|m|b]/gi;
+  const regExpPriceWithoutNotation = /(?!\$)\d+?.\d+(?=k|m|b)/gi;
 
-  while (treeWalker.nextNode()) {
-    const node = treeWalker.currentNode;
-    if (!avoidedTags.includes(node.parentNode.tagName.toLowerCase())) {
-      // console.log('node.nodeValue:', node.nodeValue);
-      if (new RegExp(regExpPriceJoined, 'gi').test(node.nodeValue)) {
-        if (regExpPriceWithNotation.test(node.nodeValue)) {
-          // Amount and currency with notations (e.g. $2.94k - $2.94m - $2.94b)
-          convertPriceWithNotation(
-            node,
-            regExpPriceWithNotation,
-            regExpPriceWithoutNotation, currency
-          );
-        } else {
-          // Amount and currency without space found (e.g. 11.1USD - $22)
-          convertPrice(node, new RegExp(regExpPriceJoined, 'gi'), regExpAmount, currency);
-        }
-      } else if (new RegExp(regExpDollarShort, 'gi').test(node.nodeValue)) {
-        // Currency found --> search amount left and right
-        const regExpPriceLeft = new RegExp(
-          regExpAmount + '\\s*' + regExpDollarShort,
-          'gi'
-        );
-        const regExpPriceRight = new RegExp(
-          regExpDollarShort + '\\s*' + regExpAmount,
-          'gi'
-        );
-        if (regExpPriceLeft.test(node.nodeValue)) {
-          // Amount found at left (e.g. 5.55 $)
-          convertPrice(node, regExpPriceLeft, regExpAmount, currency);
-        } else if (regExpPriceRight.test(node.nodeValue)) {
-          // Amount found at right (e.g. USD 66)
-          convertPrice(node, regExpPriceRight, regExpAmount, currency);
-        } else if (
-          new RegExp(
-            '^(' + regExpDollarShort + '|' + regExpDollarShort + ')$',
-            'gi'
-          ).test(node.nodeValue.trim())
-        ) {
-          // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>$</span><span>6.66</span>)
-          searchAmount(node, regExpDollarShort, true, currency);
-        }
-      } else if (new RegExp(regExpDollarLong, 'gi').test(node.nodeValue)) {
-        // Currency found --> search amount left
-        const regExpPriceLeft = new RegExp(
-          regExpAmount + '\\s*' + regExpDollarLong,
-          'gi'
-        );
-        if (regExpPriceLeft.test(node.nodeValue)) {
-          // Amount found at left (e.g. 7.77 Dollars)
-          convertPrice(node, regExpPriceLeft, regExpAmount, currency);
-        } else if (
-          new RegExp(
-            '^(' + regExpDollarLong + '|' + regExpDollarShort + ')$',
-            'gi'
-          ).test(node.nodeValue.trim())
-        ) {
-          // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>8</span><span>US Dollar</span>)
-          searchAmount(node, regExpDollarLong, false, currency);
-        }
-      }
+  let nodeValue = node.nodeValue;
+  const extraRegex = new RegExp(regExpAmount + '\\s*' + '(kilo|million|billion)', 'gi');
+  const result = extraRegex.test(nodeValue);
+  // console.log('NodeValue:', nodeValue, ', result:', result);
+  if (result) {
+    nodeValue = nodeValue.replace(/kilo/gi, 'k');
+    nodeValue = nodeValue.replace(/million/gi, 'm');
+    nodeValue = nodeValue.replace(/billion/gi, 'b');
+    node.nodeValue = nodeValue;
+  }
+
+  const joinedResult = new RegExp(regExpPriceJoined, 'gi').test(nodeValue);
+  // if (node.nodeValue.indexOf('k') >= 0 || node.nodeValue.indexOf('m') >= 0 || node.nodeValue.indexOf('b') >= 0) {
+  //   console.log('Process value:', node.nodeValue, ', result:', joinedResult);
+  // }
+  if (joinedResult) {
+    const expResult = regExpPriceWithNotation.test(nodeValue);
+    if (expResult) {
+      // Amount and currency with notations (e.g. $2.94k - $2.94m - $2.94b)
+      convertPriceWithNotation(node, regExpPriceWithNotation, regExpPriceWithoutNotation, currency);
+    } else {
+      // Amount and currency without space found (e.g. 11.1USD - $22)
+      convertPrice(node, new RegExp(regExpPriceJoined, 'gi'), regExpAmount, currency);
+    }
+  } else if (new RegExp(regExpDollarShort, 'gi').test(nodeValue)) {
+    // Currency found --> search amount left and right
+    // -?\d+(?:\.\d+)?(?:,\d+(?:\.\d+)?)*\s*(?<![a-zA-Z0-9$])(USD|U.S.D.|US\s?\$|U.S.\s?\$|\$)(?![a-zA-Z0-9$])
+    const regExpPriceLeftStr = regExpAmount + '\\s*' + regExpDollarShort;
+    const regExpPriceRightStr = regExpDollarShort + '\\s*' + regExpAmount;
+    const regExpPriceLeftExtraStr = regExpAmount + '\\s*' + regExpExtra + '\\s*' + regExpDollarShort;
+    const regExpPriceRightExtraStr = regExpDollarShort + '\\s*' + regExpAmount + '\\s*' + regExpExtra;
+    const regExpPriceLeft = new RegExp(regExpPriceLeftStr, 'gi');
+    const regExpPriceRight = new RegExp(regExpPriceRightStr, 'gi');
+    const regExpPriceLeftExtra = new RegExp(regExpPriceLeftExtraStr, 'gi');
+    const regExpPriceRightExtra = new RegExp(regExpPriceRightExtraStr, 'gi');
+    const leftExtraResult = regExpPriceLeftExtra.test(nodeValue);
+    const rightExtraResult = regExpPriceRightExtra.test(nodeValue);
+    // console.log('Process short value:', nodeValue, ', result:', leftExtraResult, rightExtraResult);
+    if (leftExtraResult) {
+      // Amount found at left (e.g. 111.11 k $)
+      convertPriceWithNotation(node, regExpPriceLeftExtra, regExpAmount, currency);
+    } else if (rightExtraResult) {
+      // Amount found at left (e.g. $ 111.11 k)
+      convertPriceWithNotation(node, regExpPriceRightExtra, regExpAmount, currency);
+    } else if (regExpPriceLeft.test(nodeValue)) {
+      // Amount found at left (e.g. 5.55 $)
+      convertPrice(node, regExpPriceLeft, regExpAmount, currency);
+    } else if (regExpPriceRight.test(nodeValue)) {
+      // Amount found at right (e.g. USD 66)
+      convertPrice(node, regExpPriceRight, regExpAmount, currency);
+    } else if (
+      new RegExp('^(' + regExpDollarShort + '|' + regExpDollarShort + ')$', 'gi').test(node.nodeValue.trim())
+    ) {
+      // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>$</span><span>6.66</span>)
+      searchAmount(node, regExpDollarShort, true, currency);
+    }
+  } else if (new RegExp(regExpDollarLong, 'gi').test(nodeValue)) {
+    // console.log('Process long value:', nodeValue);
+    // Currency found --> search amount left
+    const regExpPriceLeft = new RegExp(regExpAmount + '\\s*' + regExpDollarLong, 'gi');
+    if (regExpPriceLeft.test(nodeValue)) {
+      // Amount found at left (e.g. 7.77 Dollars)
+      convertPrice(node, regExpPriceLeft, regExpAmount, currency);
+    } else if (
+      new RegExp('^(' + regExpDollarLong + '|' + regExpDollarShort + ')$', 'gi').test(nodeValue.trim())
+    ) {
+      // Currency symbol isolated in node --> search amount in other nodes (e.g. <span>8</span><span>US Dollar</span>)
+      searchAmount(node, regExpDollarLong, false, currency);
     }
   }
 }
@@ -627,7 +534,9 @@ function containsDecimals(amount) {
  */
 function convertPrice(node, regExpPrice, regExpAmount, currency) {
   node.nodeValue.match(regExpPrice).forEach((price) => {
-    const raiAmount = fiatToRai(price.match(regExpAmount)[0], currency);
+    let priceStr = price.match(regExpAmount)[0];
+    // console.log('[convertPrice] price:', price, ', priceStr:', priceStr);
+    const raiAmount = fiatToRai(priceStr, currency);
     node.nodeValue = node.nodeValue.replace(price, raiAmount + RAI);
   });
 }
@@ -636,18 +545,23 @@ function convertPriceWithNotation(node, regExpPrice, regExpAmount, currency = 'u
   const nodes = node.nodeValue.match(regExpPrice);
   if (nodes instanceof Array && nodes.length > 0) {
     nodes.forEach((rawPrice) => {
-      const priceStr = rawPrice.match(regExpAmount)[0];
-      if (priceStr) {
+      const rawPriceLower = rawPrice.toLowerCase();
+      let priceStr = rawPriceLower.match(regExpAmount)[0];
+      if (priceStr && priceStr.length > 0) {
+        priceStr = priceStr.trim().toLowerCase();
+        priceStr = priceStr.replace(/,/g, '');
         let price = Number(priceStr);
+        // console.log('rawPrice:', rawPrice, ', priceStr:', priceStr, ', price:', price);
         if (price) {
-          if (rawPrice.indexOf('k') >= 0 || rawPrice.indexOf('K') >= 0) {
+          if (rawPriceLower.indexOf('k') >= 0) {
             price *= 1000;
-          } else if (rawPrice.indexOf('m') >= 0 || rawPrice.indexOf('M') >= 0) {
+          } else if (rawPriceLower.indexOf('m') >= 0) {
             price *= 1000000;
-          } else if (rawPrice.indexOf('b') >= 0 || rawPrice.indexOf('B') >= 0) {
+          } else if (rawPriceLower.indexOf('b') >= 0) {
             price *= 1000000000;
           }
           const raiAmount = fiatToRai(price + '', currency, true);
+          // console.log('raiAmount:', raiAmount);
           node.nodeValue = node.nodeValue.replace(rawPrice, raiAmount + RAI);
         }
       }
@@ -678,7 +592,7 @@ function fiatToRai(amountString, currency = 'usd', isShorten = false) {
   if (isShorten) {
     value = shortenLargeNumber(raiNumber, decimalsCount);
   }
-  printLog('amountString:' + amountString + ', raiNumber:' + raiNumber + ', value:' + value);
+  // printLog('amountString:' + amountString + ', raiNumber:' + raiNumber + ', value:' + value);
   return value.toLocaleString('en-US', {
     maximumFractionDigits: decimalsCount,
     minimumFractionDigits: decimalsCount,
